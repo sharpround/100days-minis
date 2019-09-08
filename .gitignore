@@ -102,3 +102,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+1-flask/.vscode/settings.json

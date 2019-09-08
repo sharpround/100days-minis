@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- load MUI -->
+    <link href="//cdn.muicss.com/mui-0.9.43/css/mui.min.css" rel="stylesheet" type="text/css" />
+    <script src="//cdn.muicss.com/mui-0.9.43/js/mui.min.js"></script>
+  </head>
+
+    <body>
+    <div class="mui-panel">Menu Bar -
+        <a href="/index"><button class="mui-btn mui-btn--raised">home</button></a>
+        <a href="/100Days"><button class="mui-btn mui-btn--raised">100Days</button></a>
+    </div>
+    <hr>
+        {% block content %}{% endblock %}
+    </body>
+</html>
