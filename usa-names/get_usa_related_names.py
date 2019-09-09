@@ -1,4 +1,4 @@
-from behindthename import dump_related_names
+from behindthename import dump_related_names, related_names
 
 def get_unique_names():
     with open("data/unique_usa_names.csv") as fp:
