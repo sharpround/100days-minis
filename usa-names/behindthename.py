@@ -1,6 +1,7 @@
 import json
 import requests
 import urllib
+from collections import defaultdict
 
 from bs4 import BeautifulSoup
 from ratelimit import limits, sleep_and_retry
@@ -23,7 +24,7 @@ random_names_url = f"{api_base_url}/random.json"
 @sleep_and_retry
 @limits(calls=1, period=10)
 def call_api(url):
-    response = requests.get(url)
+    response = requests_get(url)
 
     if response.status_code != 200:
         raise Exception(f'API response: {format(response.status_code)}')
@@ -55,46 +56,72 @@ def name_url(name):
     return f"{meaning_base_url}/{name.lower().strip()}"
 
 
-def related_name_url(name):
-    return f"{meaning_base_url}/{name.lower().strip()}/related"
-
-
 @sleep_and_retry
-@limits(calls=1, period=10)
-def related_name_soup(name):
-    url = related_name_url(name.lower().strip())
-    response = requests.get(url)
-
-    if response.status_code == 404:
-        return None
-    
-    return BeautifulSoup(requests.get(url).content, 'html.parser')
+@limits(calls=1, period=3)
+def requests_get(url):
+    return requests.get(url)
 
 
-def related_divs(soup):
-    return soup.find_all("div", attrs={"class": "related-section"})
+class BehindTheName:
+
+    def __init__(self, name):
+        self.name = name
+        self.set_name_url()
 
 
-def parse_related_divs(related_results_set):
-    names = [[r.get_text() for r in rel.find_all("a")] for rel in related_results_set]
-    usage = [b.find("b").get_text() for b in related_results_set]
+    def set_name_url(self, get_soup=False):
+        """If there are more than one, only get the top name."""
+        self.url = name_url(f"{self.name}-1")
+        response = requests_get(self.url)
 
-    return {u: n for (u, n) in zip(usage, names)}
+        if response.status_code == 404:
+            self.url = name_url(self.name)
+            response = requests_get(self.url)
+        
+        if response.status_code == 404:
+            self.exists = False
+            return None
+        else:
+            self.exists = True
+
+        if get_soup:
+            return BeautifulSoup(response.content, 'html.parser')
+        
+
+    def related_name_url(self):
+        return f"{self.url}/related"
 
 
-def related_names(name):
-    soup = related_name_soup(name)
-    
-    if not soup: 
-        return None
+    def related_name_soup(self):
+        response = requests_get(self.related_name_url())
+        return BeautifulSoup(response.content, 'html.parser')
 
-    divs = related_divs(soup)
-    if not divs:
-        try:
-            soup = related_name_soup(f"{name}-1")
-            divs = related_divs(soup)
-        except AttributeError:
-            pass
-    
-    return parse_related_divs(divs)
 
+    def related_divs(self, soup):
+        return soup.find_all("div", attrs={"class": "related-section"})
+
+
+    def parse_related_divs(self, related_results_set):
+        names = [[r.get_text() for r in rel.find_all("a")] for rel in related_results_set]
+        usage = [b.find("b").get_text() for b in related_results_set]
+
+        rel_names = defaultdict(list)
+        for u, n in zip(usage, names):
+            rel_names[u] += n
+
+        return rel_names
+
+
+    def related_names(self):
+        soup = self.related_name_soup()
+        divs = self.related_divs(soup)
+        return self.parse_related_divs(divs)
+
+
+"""
+names to test:
+    David - single
+    Dewi - multiple
+    Daenerys - fictional
+    Zuggit - nonexistent
+"""
