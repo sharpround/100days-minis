@@ -113,6 +113,9 @@ class BehindTheName:
 
 
     def related_names(self):
+        if not self.exists:
+            return None
+        
         soup = self.related_name_soup()
         divs = self.related_divs(soup)
         return self.parse_related_divs(divs)
